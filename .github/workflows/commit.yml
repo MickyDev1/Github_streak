@@ -1,0 +1,40 @@
+name: Daily Commit
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'  # Runs every 6 hours
+  workflow_dispatch:
+
+jobs:
+  commit:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Generate Timestamp
+        id: timestamp
+        run: echo "utc=$(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Git
+        run: | 
+          git config user.name "MickyDev1"
+          git config user.email "181415218+MickyDev1@users.noreply.github.com"
+
+      - name: Create or Update file with current date
+        run: |
+          echo "Last updated: ${{ steps.timestamp.outputs.utc }}" > last_activity.txt
+          echo "Updated Daily by GitHub Actions." >> last_activity.txt
+
+      - name: Commit and Push changes
+        env:
+          TOKEN: ${{ secrets.PERSONAL_TOKEN }}
+        run: |
+          git remote set-url origin https://x-access-token:${TOKEN}@github.com/${{ github.repository }}.git
+          git add last_activity.txt
+          git commit -m "Automated daily activity: ${{ steps.timestamp.outputs.utc }}" || echo "No changes to commit."
+          git push origin main
